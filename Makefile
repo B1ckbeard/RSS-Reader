@@ -9,3 +9,6 @@ lint:
 
 test:
 	npm run test
+	
+develop:
+	npx webpack serve
