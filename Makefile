@@ -9,6 +9,3 @@ lint:
 
 test:
 	npm run test
-	
-test-coverage:
-	npm test -- --coverage --coverageProvider=v8
