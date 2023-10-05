@@ -1,5 +1,6 @@
 import './styles.scss';
-import 'bootstrap/js/src/modal';
+// import 'bootstrap/js/src/modal';
+import 'bootstrap';
 import * as yup from 'yup';
 // import axios from 'axios';
 
