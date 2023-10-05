@@ -1,7 +1,8 @@
+// import 'bootstrap';
 import './styles.scss';
-import 'bootstrap';
+import 'bootstrap/js/src/modal';
 import * as yup from 'yup';
-import axios from 'axios';
+// import axios from 'axios';
 
 // const urlSchema = yup.string().trim().required().url();
 // const urlSchema = yup.string().url('Введите корректный URL адрес');
