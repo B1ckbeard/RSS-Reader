@@ -1,4 +1,3 @@
-// import 'bootstrap';
 import './styles.scss';
 import 'bootstrap/js/src/modal';
 import * as yup from 'yup';
