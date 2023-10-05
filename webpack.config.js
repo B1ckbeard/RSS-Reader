@@ -6,8 +6,8 @@ module.exports = {
   entry: './src/index.js',
   devtool: 'eval-source-map',
   output: {
-    filename: 'index.js',
     path: path.resolve(__dirname, 'dist'),
+    filename: 'index.js',
   },
   devServer: {
     static: path.resolve(__dirname, 'dist'),
@@ -17,6 +17,7 @@ module.exports = {
   module: {
     rules: [
       {
+        
         test: /\.(scss)$/,
         use: [
           {
