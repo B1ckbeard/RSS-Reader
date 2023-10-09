@@ -2,58 +2,45 @@ import './styles.scss';
 import 'bootstrap';
 import * as yup from 'yup';
 // import axios from 'axios';
+// import onChange from 'on-change';
 
-// const urlSchema = yup.string().trim().required().url();
-// const urlSchema = yup.string().url('Введите корректный URL адрес');
-
-const feeds = [
-  // список RSS-потоков
-];
-
-const urlSchema = yup.object().shape({
-  url: yup.string().url().required(),
-});
-
-// Проверка введенного URL-адреса
-/*
-const validateUrl = (url) => {
-  try {
-    urlSchema.validateSync(url);
-    console.log('URL-адрес валидный');
-    return true;
-  } catch (error) {
-    console.log('URL-адрес невалидный');
-    return false;
-  }
+const elements = {
+  form: document.querySelector('form'),
+  input: document.getElementById('url-input'),
+  feedback: document.querySelector('.feedback'),
+  errorField: document.querySelector('.text-danger'),
 };
-*/
 
-const form = document.querySelector('.form');
-const inputField = document.querySelector('#inputUrl');
-document.querySelector('.form').style.borderColor = 'red';
+const state = {
+  existedUrls: [],
+  errors: {},
+};
 
-form.addEventListener('submit', (event) => {
-  event.preventDefault();
+const validate = (field) => yup
+  .string().trim().required().url()
+  .notOneOf(state.existedUrls)
+  .validate(field);
 
-  const url = inputField.value;
+elements.form.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const formData = new FormData(e.target);
+  const inputValue = formData.get('url');
+  elements.input.value = '';
+  elements.input.focus();
 
-  urlSchema
-    .validate({ url })
-    .then(() => {
-      if (feeds.includes(url)) {
-        inputField.style.borderColor = 'red';
-        alert('Ссылка должна быть валидным URL');
-        alert('RSS уже существует');
-        throw new Error('URL is duplicate');
-      }
-      feeds.push(url);
-      alert('RSS Added');
-    })
+  validate(inputValue).then(() => {
+    elements.input.classList.remove('is-invalid');
+    elements.input.classList.add('is-valid');
+    state.existedUrls.push(inputValue);
+    // eslint-disable-next-line no-console
+    console.log('done');
+  })
     .catch((error) => {
-      console.log(error);
-    })
-    .finally(() => {
-      inputField.value = '';
-      inputField.focus();
+      elements.input.classList.add('is-invalid');
+      state.errors = error;
+      // eslint-disable-next-line no-console
+      console.log(state.errors);
+      // eslint-disable-next-line no-console
+      console.log(state.existedUrls);
     });
 });
