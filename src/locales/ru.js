@@ -8,5 +8,8 @@ export default {
         },
         posts: 'Посты',
         feeds: 'Фиды',
+        watch: 'Просмотр',
+        read: 'Читать полностью',
+        close: 'Закрыть',
     },
 };

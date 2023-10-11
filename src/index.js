@@ -22,17 +22,14 @@ const app = async () => {
         feedback: document.querySelector('.feedback'),
         errorField: document.querySelector('.text-danger'),
         feeds: document.querySelector('.feeds'),
-
-        feedsCard: document.createElement('div'),
-        cardBody: document.createElement('div'),
-        cardTitle: document.createElement('h2'),
-        listGroup: document.createElement('ul'),
+        posts: document.querySelector('.posts'),
     };
 
     const state = {
         existedUrls: [],
         errors: {},
         feeds: [],
+        posts: [],
     };
 
     yup.setLocale({
@@ -53,22 +50,26 @@ const app = async () => {
         const feeds = elements.feeds;
         feeds.innerHTML = '';
 
-        const card = document.createElement('div');
-        card.classList.add('card', 'border-0');
-        feeds.appendChild(card);
+        if (!feeds.querySelector('.card.border-0')) {
+            const card = document.createElement('div');
+            card.classList.add('card', 'border-0');
+            feeds.appendChild(card);
+      
+            const cardBody = document.createElement('div');
+            cardBody.classList.add('card-body');
+            card.appendChild(cardBody);
+      
+            const cardTitle = document.createElement('h2');
+            cardTitle.classList.add('card-title', 'h4');
+            cardTitle.textContent = i18nInstance.t('feeds');
+            cardBody.appendChild(cardTitle);
+      
+            const listGroup = document.createElement('ul');
+            listGroup.classList.add('list-group', 'border-0', 'rounded-0');
+            card.appendChild(listGroup);
+          }
 
-        const cardBody = document.createElement('div');
-        cardBody.classList.add('card-body');
-        card.appendChild(cardBody);
-
-        const cardTitle = document.createElement('h2');
-        cardTitle.classList.add('card-title', 'h4');
-        cardTitle.textContent = i18nInstance.t('feeds');
-        cardBody.appendChild(cardTitle);
-
-        const listGroup = document.createElement('ul');
-        listGroup.classList.add('list-group', 'border-0', 'rounded-0');
-        card.appendChild(listGroup);
+        const listGroup = feeds.querySelector('.list-group');
 
         state.feeds.forEach(feed => {
             const listGroupItem = document.createElement('li');
@@ -92,6 +93,59 @@ const app = async () => {
         })
     };
 
+    const postsRender = () => {
+        const posts = elements.posts;
+        posts.innerHTML = '';
+
+        if (!posts.querySelector('.card.border-0')) {
+            const card = document.createElement('div');
+            card.classList.add('card', 'border-0');
+            posts.appendChild(card);
+
+            const cardBody = document.createElement('div');
+            cardBody.classList.add('card-body');
+            card.appendChild(cardBody);
+
+            const cardTitle = document.createElement('h2');
+            cardTitle.classList.add('card-title', 'h4');
+            cardTitle.textContent = i18nInstance.t('posts');
+            cardBody.appendChild(cardTitle);
+
+            const listGroup = document.createElement('ul');
+            listGroup.classList.add('list-group', 'border-0', 'rounded-0');
+            card.appendChild(listGroup);
+        }
+
+        const listGroup = posts.querySelector('.list-group');
+
+        state.posts.forEach((post) => {
+            const listGroupItem = document.createElement('li');
+            listGroupItem.classList.add(
+                'list-group-item',
+                'd-flex',
+                'justify-content-between',
+                'align-items-start',
+                'border-0',
+                'border-end-0'
+            );
+            listGroup.appendChild(listGroupItem);
+
+            const titledLink = document.createElement('a');
+            titledLink.classList.add('fw-bold');
+            titledLink.target = '_blank';
+            titledLink.rel = 'noopenner noreferrer';
+            titledLink.href = post.postLink.textContent;
+            // titledLink.dataset.id = post.postId;
+            titledLink.textContent = post.postTitle.textContent;
+            listGroupItem.appendChild(titledLink);
+
+            titledLink.addEventListener('click', () => {
+                titledLink.classList.remove('fw-bold');
+                titledLink.classList.add('fw-normal', 'link-secondary');
+            });
+        });
+    };
+
     elements.form.addEventListener('submit', (e) => {
         e.preventDefault();
         const formData = new FormData(e.target);
@@ -112,8 +166,6 @@ const app = async () => {
                 elements.feedback.classList.add('text-danger');
                 elements.feedback.textContent = error.errors.map((errorKey) => i18nInstance.t(errorKey)).join('\n');
                 state.errors = error;
-                // console.log(state.errors);
-                // console.log(state.existedUrls);
             })
         axios
             .get(
@@ -129,10 +181,16 @@ const app = async () => {
                 const doc = parsedResult.documentElement;
                 const feedTitle = doc.querySelector('channel title').textContent;
                 const feedDescription = doc.querySelector('channel description').textContent;
-
-                // console.log(doc, feedTitle.textContent, feedDescription.textContent);
+                const posts = doc.querySelectorAll('item');
                 state.feeds.push({ feedTitle, feedDescription });
+                posts.forEach((post) =>{
+                    const postTitle = post.querySelector('title');
+                    const postDescription = post.querySelector('description');
+                    const postLink = post.querySelector('link');
+                    state.posts.push({postTitle, postDescription, postLink});
+                })
                 feedRender();
+                postsRender();
             })
     });
 };
