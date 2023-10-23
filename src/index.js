@@ -1,35 +1,34 @@
 import './styles.scss';
 import 'bootstrap';
 import * as yup from 'yup';
-import i18next from 'i18next';
+import i18n from 'i18next';
 import resources from './locales/index';
 import axios from 'axios';
 import parser from './parser';
-// import onChange from 'on-change';
+import onChange from 'on-change';
+import _ from 'lodash';
+import uniqueId from 'lodash/uniqueId.js';
+import render from './view';
 
 const app = async () => {
     const defaultLanguage = 'ru';
-    const i18nInstance = i18next.createInstance();
+    const i18nInstance = i18n.createInstance();
     await i18nInstance.init({
         lng: defaultLanguage,
         debug: false,
         resources,
     });
 
-    const elements = {
-        form: document.querySelector('form'),
-        input: document.getElementById('url-input'),
-        feedback: document.querySelector('.feedback'),
-        errorField: document.querySelector('.text-danger'),
-        feeds: document.querySelector('.feeds'),
-        posts: document.querySelector('.posts'),
-    };
-
     const state = {
+        isValid: false,
+        form:
+            'filling',
+        loadingProcess: {
+            state: 'initial',
+            error: null,
+        },
         existedUrls: [],
-        errors: {},
         feeds: [],
-        posts: [],
     };
 
     yup.setLocale({
@@ -41,157 +40,130 @@ const app = async () => {
         },
     });
 
-    const validate = (field) => yup
-        .string().trim().required().url()
+    const validate = (field) => yup.string().trim().required().url()
         .notOneOf(state.existedUrls)
         .validate(field);
 
-    const feedRender = () => {
-        const feeds = elements.feeds;
-        feeds.innerHTML = '';
-
-        if (!feeds.querySelector('.card.border-0')) {
-            const card = document.createElement('div');
-            card.classList.add('card', 'border-0');
-            feeds.appendChild(card);
-      
-            const cardBody = document.createElement('div');
-            cardBody.classList.add('card-body');
-            card.appendChild(cardBody);
-      
-            const cardTitle = document.createElement('h2');
-            cardTitle.classList.add('card-title', 'h4');
-            cardTitle.textContent = i18nInstance.t('feeds');
-            cardBody.appendChild(cardTitle);
-      
-            const listGroup = document.createElement('ul');
-            listGroup.classList.add('list-group', 'border-0', 'rounded-0');
-            card.appendChild(listGroup);
-          }
-
-        const listGroup = feeds.querySelector('.list-group');
-
-        state.feeds.forEach(feed => {
-            const listGroupItem = document.createElement('li');
-            listGroupItem.classList.add(
-                'list-group-item',
-                'border-0',
-                'border-end-0'
-            );
-
-            listGroup.insertBefore(listGroupItem, listGroup.firstChild);
-
-            const feedItemTitle = document.createElement('h3');
-            feedItemTitle.classList.add('h6', 'm-0');
-            feedItemTitle.textContent = feed.feedTitle;
-            listGroupItem.appendChild(feedItemTitle);
-
-            const feedItemDescription = document.createElement('p');
-            feedItemDescription.classList.add('m-0', 'small', 'text-black-50');
-            feedItemDescription.textContent = feed.feedDescription;
-            listGroupItem.appendChild(feedItemDescription);
-        })
+    const elements = {
+        formEl: document.querySelector('form'),
+        input: document.getElementById('url-input'),
+        feedback: document.querySelector('.feedback'),
+        feedsContainer: document.querySelector('.feeds'),
+        postsContainer: document.querySelector('.posts'),
+        feedsCard: document.createElement('div'),
+        feedsCardBody: document.createElement('div'),
+        feedsCardTitle: document.createElement('h2'),
+        feedsListGroup: document.createElement('ul'),
+        postsCard: document.createElement('div'),
+        postsCardBody: document.createElement('div'),
+        postsCardTitle: document.createElement('h2'),
+        postsListGroup: document.createElement('ul'),
     };
 
-    const postsRender = () => {
-        const posts = elements.posts;
-        posts.innerHTML = '';
+    elements.feedsCard.append(elements.feedsCardBody);
+    elements.feedsCard.classList.add('card', 'border-0');
+    elements.feedsCardBody.append(elements.feedsCardTitle);
+    elements.feedsCardBody.classList.add('card-body');
+    elements.feedsContainer.append(elements.feedsCard);
+    elements.feedsCard.append(elements.feedsListGroup);
+    elements.feedsCardTitle.classList.add('card-title', 'h4');
+    elements.feedsListGroup.classList.add('list-group', 'border-0', 'rounded-0');
+    elements.postsCard.append(elements.postsCardBody);
+    elements.postsCard.classList.add('card', 'border-0');
+    elements.postsCardBody.append(elements.postsCardTitle);
+    elements.postsCardBody.classList.add('card-body');
+    elements.postsContainer.append(elements.postsCard);
+    elements.postsCard.append(elements.postsListGroup);
+    elements.postsCardTitle.classList.add('card-title', 'h4');
+    elements.postsListGroup.classList.add('list-group', 'border-0', 'rounded-0');
 
-        if (!posts.querySelector('.card.border-0')) {
-            const card = document.createElement('div');
-            card.classList.add('card', 'border-0');
-            posts.appendChild(card);
+    const getFeed = (url) => axios.get(`https://allorigins.hexlet.app/get?disableCache=true&url=${encodeURIComponent(url)}`);
 
-            const cardBody = document.createElement('div');
-            cardBody.classList.add('card-body');
-            card.appendChild(cardBody);
+    const watchedState = onChange(state, (path, value) => {
+        switch (path) {
+            case 'existedUrls': {
+                const currentFeed = value[value.length - 1];
+                getFeed(currentFeed)
+                    .then((response) => {
+                        watchedState.loadingProcess.state = 'success';
+                        watchedState.form = 'success';
+                        watchedState.loadingProcess.data = response.data.contents;
+                    })
+                    .catch((err) => {
+                        // console.log(err);
+                        if (err.response) {
+                            watchedState.loadingProcess.state = 'failed';
+                            watchedState.form = 'failed';
+                            watchedState.loadingProcess.error = 'error';
+                            elements.feedback.textContent = i18nInstance.t('errors.responceErr');
+                        }
+                        if (err.request) {
+                            watchedState.loadingProcess.state = 'failed';
+                            watchedState.form = 'failed';
+                            watchedState.loadingProcess.error = 'error';
+                            elements.feedback.textContent = i18nInstance.t('errors.networkError');
+                        } else {
+                            // elements.feedback.textContent = err.errors.map((errorKey) => i18nInstance.t(errorKey)).join('\n');
+                        }
+                    });
+                break;
+            }
+            case 'loadingProcess.data': {
+                parser(value)
+                    .then((parsedResult) => {
+                        const doc = parsedResult.documentElement;
+                        const posts = doc.querySelectorAll('item');
 
-            const cardTitle = document.createElement('h2');
-            cardTitle.classList.add('card-title', 'h4');
-            cardTitle.textContent = i18nInstance.t('posts');
-            cardBody.appendChild(cardTitle);
-
-            const listGroup = document.createElement('ul');
-            listGroup.classList.add('list-group', 'border-0', 'rounded-0');
-            card.appendChild(listGroup);
+                        watchedState.feeds.push({
+                            id: uniqueId('feed'),
+                            title: doc.querySelector('channel title').textContent,
+                            description: doc.querySelector('channel description').textContent,
+                            posts: [...posts].map((post) => ({
+                                id: uniqueId('post'),
+                                title: post.querySelector('title').textContent,
+                                link: post.querySelector('link').textContent,
+                            })),
+                        });
+                    })
+                    .catch((err) => {
+                        console.log(err);
+                    })
+                    .then(() => {
+                        watchedState.existedUrls.forEach((url) => {
+                            setTimeout(() => getFeed(url), 5000);
+                        });
+                    });
+                break;
+            }
+            default:
+                break;
         }
-
-        const listGroup = posts.querySelector('.list-group');
-
-        state.posts.forEach((post) => {
-            const listGroupItem = document.createElement('li');
-            listGroupItem.classList.add(
-                'list-group-item',
-                'd-flex',
-                'justify-content-between',
-                'align-items-start',
-                'border-0',
-                'border-end-0'
-            );
-            listGroup.appendChild(listGroupItem);
-
-            const titledLink = document.createElement('a');
-            titledLink.classList.add('fw-bold');
-            titledLink.target = '_blank';
-            titledLink.rel = 'noopenner noreferrer';
-            titledLink.href = post.postLink.textContent;
-            // titledLink.dataset.id = post.postId;
-            titledLink.textContent = post.postTitle.textContent;
-            listGroupItem.appendChild(titledLink);
-
-            titledLink.addEventListener('click', () => {
-                titledLink.classList.remove('fw-bold');
-                titledLink.classList.add('fw-normal', 'link-secondary');
-            });
+        render({
+            path, value, state, i18: i18nInstance, elements,
         });
-    };
+    });
 
-    elements.form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const formData = new FormData(e.target);
-        const inputValue = formData.get('url');
-
-        validate(inputValue).then(() => {
-            elements.input.classList.remove('is-invalid');
-            elements.input.classList.add('is-valid');
-            state.existedUrls.push(inputValue);
-            elements.feedback.classList.remove('text-danger');
-            elements.feedback.classList.add('text-success');
-            elements.feedback.textContent = i18nInstance.t('successLoad');
-            elements.input.value = '';
-            elements.input.focus();
+    const validation = (url) => validate(url)
+        .then((validUrl) => {
+            watchedState.existedUrls.push(validUrl);
+            watchedState.form = 'success';
+            watchedState.isValid = true;
         })
-            .catch((error) => {
-                elements.input.classList.add('is-invalid');
-                elements.feedback.classList.add('text-danger');
-                elements.feedback.textContent = error.errors.map((errorKey) => i18nInstance.t(errorKey)).join('\n');
-                state.errors = error;
-            })
-        axios
-            .get(
-                `https://allorigins.hexlet.app/get?disableCache=true&url=${encodeURIComponent(
-                    inputValue
-                )}`
-            )
-            .then(response => {
-                return response.data.contents;
-            })
-            .then(parser)
-            .then((parsedResult) => {
-                const doc = parsedResult.documentElement;
-                const feedTitle = doc.querySelector('channel title').textContent;
-                const feedDescription = doc.querySelector('channel description').textContent;
-                const posts = doc.querySelectorAll('item');
-                state.feeds.push({ feedTitle, feedDescription });
-                posts.forEach((post) =>{
-                    const postTitle = post.querySelector('title');
-                    const postDescription = post.querySelector('description');
-                    const postLink = post.querySelector('link');
-                    state.posts.push({postTitle, postDescription, postLink});
-                })
-                feedRender();
-                postsRender();
-            })
+        .catch((err) => {
+            watchedState.form = 'failed';
+            watchedState.isValid = false;
+            elements.feedback.textContent = err.errors.map((errorKey) => i18nInstance.t(errorKey)).join('\n');
+        });
+
+    elements.formEl.addEventListener('submit', (e) => {
+        e.preventDefault();
+        i18nInstance.t('notUrl');
+        const formData = new FormData(e.target);
+        const url = formData.get('url');
+        validation(url);
+    });
+
+    elements.postsContainer.addEventListener('click', (e) => {
     });
 };
 

@@ -1,4 +1,5 @@
-export default (data) => {
+export default function parser(data) {
     const parse = new DOMParser();
-    return parse.parseFromString(data, 'text/xml');
-};
+    return Promise.resolve(parse.parseFromString(data, 'text/xml'));
+  }
+  
