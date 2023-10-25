@@ -8,7 +8,9 @@ import parser from './parser';
 import onChange from 'on-change';
 import _ from 'lodash';
 import uniqueId from 'lodash/uniqueId.js';
+import { uniqBy } from 'lodash';
 import render from './view';
+import elements from './elements';
 
 const app = async () => {
     const defaultLanguage = 'ru';
@@ -29,6 +31,8 @@ const app = async () => {
         },
         existedUrls: [],
         feeds: [],
+        posts: [],
+        uiState: [],
     };
 
     yup.setLocale({
@@ -44,126 +48,97 @@ const app = async () => {
         .notOneOf(state.existedUrls)
         .validate(field);
 
-    const elements = {
-        formEl: document.querySelector('form'),
-        input: document.getElementById('url-input'),
-        feedback: document.querySelector('.feedback'),
-        feedsContainer: document.querySelector('.feeds'),
-        postsContainer: document.querySelector('.posts'),
-        feedsCard: document.createElement('div'),
-        feedsCardBody: document.createElement('div'),
-        feedsCardTitle: document.createElement('h2'),
-        feedsListGroup: document.createElement('ul'),
-        postsCard: document.createElement('div'),
-        postsCardBody: document.createElement('div'),
-        postsCardTitle: document.createElement('h2'),
-        postsListGroup: document.createElement('ul'),
-    };
-
-    elements.feedsCard.append(elements.feedsCardBody);
-    elements.feedsCard.classList.add('card', 'border-0');
-    elements.feedsCardBody.append(elements.feedsCardTitle);
-    elements.feedsCardBody.classList.add('card-body');
-    elements.feedsContainer.append(elements.feedsCard);
-    elements.feedsCard.append(elements.feedsListGroup);
-    elements.feedsCardTitle.classList.add('card-title', 'h4');
-    elements.feedsListGroup.classList.add('list-group', 'border-0', 'rounded-0');
-    elements.postsCard.append(elements.postsCardBody);
-    elements.postsCard.classList.add('card', 'border-0');
-    elements.postsCardBody.append(elements.postsCardTitle);
-    elements.postsCardBody.classList.add('card-body');
-    elements.postsContainer.append(elements.postsCard);
-    elements.postsCard.append(elements.postsListGroup);
-    elements.postsCardTitle.classList.add('card-title', 'h4');
-    elements.postsListGroup.classList.add('list-group', 'border-0', 'rounded-0');
-
     const getFeed = (url) => axios.get(`https://allorigins.hexlet.app/get?disableCache=true&url=${encodeURIComponent(url)}`);
 
     const watchedState = onChange(state, (path, value) => {
-        switch (path) {
-            case 'existedUrls': {
-                const currentFeed = value[value.length - 1];
-                getFeed(currentFeed)
-                    .then((response) => {
-                        watchedState.loadingProcess.state = 'success';
-                        watchedState.form = 'success';
-                        watchedState.loadingProcess.data = response.data.contents;
-                    })
-                    .catch((err) => {
-                        // console.log(err);
-                        if (err.response) {
-                            watchedState.loadingProcess.state = 'failed';
-                            watchedState.form = 'failed';
-                            watchedState.loadingProcess.error = 'error';
-                            elements.feedback.textContent = i18nInstance.t('errors.responceErr');
-                        }
-                        if (err.request) {
-                            watchedState.loadingProcess.state = 'failed';
-                            watchedState.form = 'failed';
-                            watchedState.loadingProcess.error = 'error';
-                            elements.feedback.textContent = i18nInstance.t('errors.networkError');
-                        } else {
-                            // elements.feedback.textContent = err.errors.map((errorKey) => i18nInstance.t(errorKey)).join('\n');
-                        }
-                    });
-                break;
-            }
-            case 'loadingProcess.data': {
-                parser(value)
-                    .then((parsedResult) => {
-                        const doc = parsedResult.documentElement;
-                        const posts = doc.querySelectorAll('item');
-
-                        watchedState.feeds.push({
-                            id: uniqueId('feed'),
-                            title: doc.querySelector('channel title').textContent,
-                            description: doc.querySelector('channel description').textContent,
-                            posts: [...posts].map((post) => ({
-                                id: uniqueId('post'),
-                                title: post.querySelector('title').textContent,
-                                link: post.querySelector('link').textContent,
-                            })),
-                        });
-                    })
-                    .catch((err) => {
-                        console.log(err);
-                    })
-                    .then(() => {
-                        watchedState.existedUrls.forEach((url) => {
-                            setTimeout(() => getFeed(url), 5000);
-                        });
-                    });
-                break;
-            }
-            default:
-                break;
-        }
         render({
-            path, value, state, i18: i18nInstance, elements,
+            path, value, state, i18: i18nInstance,
         });
+    });
+
+    document.querySelector('.full-article').addEventListener('click', (e) => {
+        const { linkId } = e.target.dataset;
+        const link = document.getElementById(linkId);
+        link.classList.remove();
+        link.classList.add('fw-normal', 'link-secondary');
+        watchedState.uiState.push(linkId);
     });
 
     const validation = (url) => validate(url)
         .then((validUrl) => {
             watchedState.existedUrls.push(validUrl);
-            watchedState.form = 'success';
             watchedState.isValid = true;
+            return validUrl;
         })
         .catch((err) => {
             watchedState.form = 'failed';
             watchedState.isValid = false;
             elements.feedback.textContent = err.errors.map((errorKey) => i18nInstance.t(errorKey)).join('\n');
+            return Promise.reject();
         });
+
+    const updatePosts = (url) => {
+        setTimeout(() => getFeed(url)
+            .then((response) => parser(response.data.contents))
+            .then((data) => {
+                // console.log(`${data}timeout`);
+                const newPosts = data.querySelectorAll('item');
+                watchedState.posts = uniqBy([...watchedState.posts, ...createPosts(newPosts)], 'link');
+                updatePosts(url);
+            })
+            .catch((err) => {
+                console.log(err);
+                elements.feedback.textContent = i18nInstance.t('errors.parserError');
+            }), 5000);
+    };
+
+    const createFeed = (doc, url) => ({
+        id: uniqueId('feed'),
+        title: doc.querySelector('channel title').textContent,
+        link: url,
+        description: doc.querySelector('channel description').textContent,
+    });
+
+    const createPosts = (posts) => [...posts].map((post) => ({
+        id: uniqueId('post'),
+        title: post.querySelector('title').textContent,
+        link: post.querySelector('link').textContent,
+        description: post.querySelector('description').textContent,
+    }));
 
     elements.formEl.addEventListener('submit', (e) => {
         e.preventDefault();
         i18nInstance.t('notUrl');
         const formData = new FormData(e.target);
         const url = formData.get('url');
-        validation(url);
-    });
-
-    elements.postsContainer.addEventListener('click', (e) => {
+        validation(url)
+            .then(getFeed)
+            .then((response) => {
+                watchedState.loadingProcess.state = 'success';
+                watchedState.form = 'success';
+                watchedState.loadingProcess.data = response.data.contents;
+                return response.data.contents;
+            })
+            .catch((err) => {
+                watchedState.loadingProcess.state = 'failed';
+                watchedState.form = 'failed';
+                watchedState.loadingProcess.error = 'error';
+                let errorName = '';
+                if (err.response) {
+                    errorName = 'errors.responceErr';
+                } else if (err.request) {
+                    errorName = 'networkError';
+                }
+                elements.feedback.textContent = i18nInstance.t(errorName);
+                return Promise.reject();
+            })
+            .then(parser)
+            .then((doc) => {
+                const posts = doc.querySelectorAll('item');
+                watchedState.feeds.push(createFeed(doc, url));
+                watchedState.posts = [...watchedState.posts, ...createPosts(posts)];
+            })
+            .then(updatePosts(url));
     });
 };
 
