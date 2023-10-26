@@ -107,7 +107,7 @@ const renderForm = (state, i18, elements) => {
 
 export const render = ({
   path, value, state, i18, elements,
- }) => {
+}) => {
   switch (path) {
     case 'feeds': {
       renderFeeds(value, i18, elements);
