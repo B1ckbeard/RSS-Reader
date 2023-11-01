@@ -1,14 +1,15 @@
 export default function parse(data) {
   const domParser = new DOMParser();
-  const doc = domParser.parseFromString(data, 'text/xml').documentElement;
-  if (doc.querySelector('parsererror')) {
+  // const doc = domParser.parseFromString(data, 'text/xml').documentElement;
+  const parsedData = domParser.parseFromString(data, 'application/xml').documentElement;
+  if (parsedData.querySelector('parsererror')) {
     throw new Error('errors.parserError');
   }
-  const posts = doc.querySelectorAll('item');
+  const posts = parsedData.querySelectorAll('item');
   return {
     feed: {
-      title: doc.querySelector('channel title').textContent,
-      description: doc.querySelector('channel description').textContent,
+      title: parsedData.querySelector('channel title').textContent,
+      description: parsedData.querySelector('channel description').textContent,
     },
     posts: [...posts].map((post) => ({
       title: post.querySelector('title').textContent,

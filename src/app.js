@@ -1,5 +1,3 @@
-import './styles.scss';
-import 'bootstrap';
 import onChange from 'on-change';
 import * as yup from 'yup';
 import axios from 'axios';
@@ -27,7 +25,7 @@ const elements = {
   modal: document.getElementById('modal'),
 };
 
-const TIMEOUT = 5000;
+const timeOut = 5000;
 
 const app = () => {
   const defaultLanguage = 'ru';
@@ -95,17 +93,6 @@ const app = () => {
       }
     });
 
-    elements.postsListGroup.addEventListener('click', (e) => {
-      if (e.target.tagName === 'BUTTON') {
-        const { postId } = e.target.dataset;
-        watchedState.uiState.selectedPostId = postId;
-        watchedState.uiState.clickedLinksIds.add(postId);
-      }
-      if (e.target.tagName === 'A') {
-        watchedState.uiState.clickedLinksIds.add(e.target.id);
-      }
-    });
-
     const validate = (field) => yup.string().trim().required().url()
       .notOneOf(watchedState.feeds.map((feed) => feed.link))
       .validate(field);
@@ -127,42 +114,10 @@ const app = () => {
         })
         .catch((err) => {
           // eslint-disable-next-line no-console
-          console.error(err);
+          // console.error(err);
         }));
       Promise.all(promises)
-        .then(setTimeout(() => updatePosts(), TIMEOUT));
-    };
-
-    const loadPosts = (url) => {
-      getFeed(url)
-        .then((result) => {
-          if (result.error) {
-            throw new Error(result.error);
-          }
-          const parsedResult = parse(result.data);
-
-          const newFeed = {
-            ...parsedResult.feed,
-            id: uniqueId('feed'),
-            link: url,
-          };
-          const newPosts = parsedResult.posts.map((post) => ({
-            ...post,
-            id: uniqueId('post'),
-          }));
-
-          watchedState.feeds.push(newFeed);
-          watchedState.posts = uniqBy([...watchedState.posts, ...newPosts], 'link');
-          watchedState.isLoading = false;
-          watchedState.form.state = 'success';
-        })
-        .catch((err) => {
-          // eslint-disable-next-line no-console
-          console.error(err);
-          watchedState.isLoading = false;
-          watchedState.form.state = 'failed';
-          watchedState.form.error = err.message;
-        });
+        .then(setTimeout(() => updatePosts(), timeOut));
     };
 
     elements.formEl.addEventListener('submit', (e) => {
@@ -174,14 +129,42 @@ const app = () => {
       validate(url)
         .then((validUrl) => {
           watchedState.isLoading = true;
-          loadPosts(validUrl);
+          getFeed(validUrl)
+            .then((result) => {
+              if (result.error) {
+                throw new Error(result.error);
+              }
+              const parsedResult = parse(result.data);
+
+              const newFeed = {
+                ...parsedResult.feed,
+                id: uniqueId('feed'),
+                link: validUrl,
+              };
+              const newPosts = parsedResult.posts.map((post) => ({
+                ...post,
+                id: uniqueId('post'),
+              }));
+
+              watchedState.feeds.push(newFeed);
+              watchedState.posts = uniqBy([...watchedState.posts, ...newPosts], 'link');
+              watchedState.isLoading = false;
+              watchedState.form.state = 'success';
+            })
+            .catch((err) => {
+              // eslint-disable-next-line no-console
+              console.error(err);
+              watchedState.isLoading = false;
+              watchedState.form.state = 'failed';
+              // watchedState.form.error = err.message;
+            });
         })
         .catch((err) => {
           watchedState.form.state = 'failed';
           watchedState.form.error = err.errors.pop();
         });
     });
-    setTimeout(() => updatePosts(), TIMEOUT);
+    updatePosts();
   });
 };
 

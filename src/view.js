@@ -59,6 +59,22 @@ const renderPosts = (posts, i18, state, elements) => {
     postLink.rel = 'noopener noreferrer';
     postLink.target = '_blank';
 
+    btn.addEventListener('click', (e) => {
+      const { postId } = e.target.dataset;
+      state.uiState.selectedPostId = postId;
+      state.uiState.clickedLinksIds.add(postId);
+      const selectedPost = state.posts.find(({ id }) => id === state.uiState.selectedPostId);
+      document.querySelector('.modal-title').textContent = selectedPost.title;
+      document.querySelector('.modal-body').textContent = selectedPost.description;
+      const modalBtn = document.querySelector('.full-article');
+      modalBtn.href = selectedPost.link;
+      modalBtn.dataset.linkId = selectedPost.id;
+    });
+
+    postLink.addEventListener('click', (e) => {
+      state.uiState.clickedLinksIds.add(e.target.id);
+    })
+
     if (state.uiState.clickedLinksIds.has(post.id)) {
       postLink.classList.add('fw-normal', 'link-secondary');
     } else {
@@ -69,15 +85,6 @@ const renderPosts = (posts, i18, state, elements) => {
 
   elements.postsListGroup.replaceChildren(...items);
   elements.postsCardTitle.textContent = i18('posts');
-};
-
-const renderModal = (state) => {
-  const selectedPost = state.posts.find(({ id }) => id === state.uiState.selectedPostId);
-  document.querySelector('.modal-title').textContent = selectedPost.title;
-  document.querySelector('.modal-body').textContent = selectedPost.description;
-  const modalBtn = document.querySelector('.full-article');
-  modalBtn.href = selectedPost.link;
-  modalBtn.dataset.linkId = selectedPost.id;
 };
 
 const renderForm = (state, i18, elements) => {
@@ -128,10 +135,6 @@ export const render = ({
     case 'isLoading': {
       elements.input.disabled = state.isLoading;
       elements.addBtn.disabled = state.isLoading;
-      break;
-    }
-    case 'uiState.selectedPostId': {
-      renderModal(state);
       break;
     }
     case 'uiState.clickedLinksIds': {
