@@ -73,7 +73,7 @@ const renderPosts = (posts, i18, state, elements) => {
 
     postLink.addEventListener('click', (e) => {
       state.uiState.clickedLinksIds.add(e.target.id);
-    })
+    });
 
     if (state.uiState.clickedLinksIds.has(post.id)) {
       postLink.classList.add('fw-normal', 'link-secondary');
