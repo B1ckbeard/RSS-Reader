@@ -114,7 +114,7 @@ const app = () => {
         })
         .catch((err) => {
           // eslint-disable-next-line no-console
-          // console.error(err);
+          console.error(err);
         }));
       Promise.all(promises)
         .then(setTimeout(() => updatePosts(), timeOut));
@@ -153,10 +153,10 @@ const app = () => {
             })
             .catch((err) => {
               // eslint-disable-next-line no-console
-              console.error(err);
+              console.error(err.message);
               watchedState.isLoading = false;
               watchedState.form.state = 'failed';
-              // watchedState.form.error = err.message;
+              watchedState.form.error = err.message;
             });
         })
         .catch((err) => {

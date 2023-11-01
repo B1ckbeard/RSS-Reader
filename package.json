@@ -1,7 +1,7 @@
 {
   "name": "@hexlet/code",
   "version": "1.0.0",
-  "description": "RSS agregator [![Actions Status](https://github.com/B1ckbeard/frontend-project-11/workflows/hexlet-check/badge.svg)](https://github.com/B1ckbeard/frontend-project-11/actions)",
+  "description": "RSS reader [![Actions Status](https://github.com/B1ckbeard/frontend-project-11/workflows/hexlet-check/badge.svg)](https://github.com/B1ckbeard/frontend-project-11/actions)",
   "main": "index.js",
   "scripts": {
     "start": "webpack serve --mode development",
