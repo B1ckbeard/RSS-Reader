@@ -23,7 +23,6 @@ const renderFeeds = (feeds, i18, elements) => {
 
     return feedListElement;
   });
-  
   elements.feedsListGroup.replaceChildren(...items);
   elements.feedsCardTitle.textContent = i18('feeds');
 };
@@ -116,7 +115,7 @@ const renderForm = (state, i18, elements) => {
   }
 };
 
-export const render = ({
+const render = ({
   path, value, state, i18, elements,
 }) => {
   switch (path) {
@@ -151,3 +150,5 @@ export const render = ({
     default:
   }
 };
+
+export default render;

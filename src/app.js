@@ -4,7 +4,7 @@ import axios from 'axios';
 import { uniqBy, uniqueId } from 'lodash';
 import i18n from 'i18next';
 import resources from './locales/index';
-import { render } from './view';
+import render from './view';
 import parse from './parser';
 
 const elements = {
