@@ -1,4 +1,4 @@
-export const initRender = (elements) => {
+const renderFeeds = (feeds, i18, elements) => {
   elements.feedsCard.append(elements.feedsCardBody);
   elements.feedsCard.classList.add('card', 'border-0');
   elements.feedsCardBody.append(elements.feedsCardTitle);
@@ -7,17 +7,7 @@ export const initRender = (elements) => {
   elements.feedsCard.append(elements.feedsListGroup);
   elements.feedsCardTitle.classList.add('card-title', 'h4');
   elements.feedsListGroup.classList.add('list-group', 'border-0', 'rounded-0');
-  elements.postsCard.append(elements.postsCardBody);
-  elements.postsCard.classList.add('card', 'border-0');
-  elements.postsCardBody.append(elements.postsCardTitle);
-  elements.postsCardBody.classList.add('card-body');
-  elements.postsContainer.append(elements.postsCard);
-  elements.postsCard.append(elements.postsListGroup);
-  elements.postsCardTitle.classList.add('card-title', 'h4');
-  elements.postsListGroup.classList.add('list-group', 'border-0', 'rounded-0');
-};
 
-const renderFeeds = (feeds, i18, elements) => {
   const items = feeds.map((feed) => {
     const feedListElement = document.createElement('li');
     const titleNode = document.createElement('h3');
@@ -33,11 +23,21 @@ const renderFeeds = (feeds, i18, elements) => {
 
     return feedListElement;
   });
+  
   elements.feedsListGroup.replaceChildren(...items);
   elements.feedsCardTitle.textContent = i18('feeds');
 };
 
 const renderPosts = (posts, i18, state, elements) => {
+  elements.postsCard.append(elements.postsCardBody);
+  elements.postsCard.classList.add('card', 'border-0');
+  elements.postsCardBody.append(elements.postsCardTitle);
+  elements.postsCardBody.classList.add('card-body');
+  elements.postsContainer.append(elements.postsCard);
+  elements.postsCard.append(elements.postsListGroup);
+  elements.postsCardTitle.classList.add('card-title', 'h4');
+  elements.postsListGroup.classList.add('list-group', 'border-0', 'rounded-0');
+
   const items = posts.map((post) => {
     const postListElement = document.createElement('li');
     const btn = document.createElement('button');
@@ -69,10 +69,14 @@ const renderPosts = (posts, i18, state, elements) => {
       const modalBtn = document.querySelector('.full-article');
       modalBtn.href = selectedPost.link;
       modalBtn.dataset.linkId = selectedPost.id;
+      postLink.classList.remove('fw-bold');
+      postLink.classList.add('fw-normal', 'link-secondary');
     });
 
     postLink.addEventListener('click', (e) => {
       state.uiState.clickedLinksIds.add(e.target.id);
+      postLink.classList.remove('fw-bold');
+      postLink.classList.add('fw-normal', 'link-secondary');
     });
 
     if (state.uiState.clickedLinksIds.has(post.id)) {
@@ -118,6 +122,7 @@ export const render = ({
   switch (path) {
     case 'feeds': {
       renderFeeds(value, i18, elements);
+      console.log(value);
       break;
     }
     case 'posts': {

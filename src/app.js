@@ -4,7 +4,7 @@ import axios from 'axios';
 import { uniqBy, uniqueId } from 'lodash';
 import i18n from 'i18next';
 import resources from './locales/index';
-import { render, initRender } from './view';
+import { render } from './view';
 import parse from './parser';
 
 const elements = {
@@ -35,8 +35,6 @@ const app = () => {
     debug: false,
     resources,
   }).then((i18) => {
-    initRender(elements);
-
     const state = {
       isLoading: false,
       form: {
@@ -146,8 +144,8 @@ const app = () => {
                 id: uniqueId('post'),
               }));
 
-              watchedState.feeds.push(newFeed);
-              watchedState.posts = uniqBy([...watchedState.posts, ...newPosts], 'link');
+              watchedState.feeds.unshift(newFeed);
+              watchedState.posts = uniqBy([...newPosts, ...watchedState.posts], 'link');
               watchedState.isLoading = false;
               watchedState.form.state = 'success';
             })
