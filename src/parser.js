@@ -1,9 +1,15 @@
 export default function parse(data) {
   const domParser = new DOMParser();
   const parsedData = domParser.parseFromString(data, 'application/xhtml+xml');
-  if (parsedData.querySelector('parsererror')) {
+  const parserError = parsedData.querySelector('parsererror');
+
+  if (parserError) {
+    const error = new Error(parserError.textContent);
+    error.isParserError = true;
+    console.log(error);
     throw Error('errors.parserError');
   }
+
   const posts = parsedData.querySelectorAll('item');
   return {
     feed: {

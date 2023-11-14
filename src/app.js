@@ -91,6 +91,16 @@ const app = () => {
       }
     });
 
+    elements.postsListGroup.addEventListener('click', (e) => {
+      const postId = e.target.dataset.postId || e.target.id;
+      if (postId) {
+        if (e.target.tagName.toLowerCase() === 'button') {
+          watchedState.uiState.selectedPostId = postId;
+        }
+        watchedState.uiState.clickedLinksIds.add(postId);
+      }
+    });
+
     const validate = (field) => yup.string().trim().required().url()
       .notOneOf(watchedState.feeds.map((feed) => feed.link))
       .validate(field);

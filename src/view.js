@@ -27,6 +27,15 @@ const renderFeeds = (feeds, i18, elements) => {
   elements.feedsCardTitle.textContent = i18('feeds');
 };
 
+const renderModal = (state) => {
+  const selectedPost = state.posts.find(({ id }) => id === state.uiState.selectedPostId);
+  document.querySelector('.modal-title').textContent = selectedPost.title;
+  document.querySelector('.modal-body').textContent = selectedPost.description;
+  const modalBtn = document.querySelector('.full-article');
+  modalBtn.href = selectedPost.link;
+  modalBtn.dataset.linkId = selectedPost.id;
+};
+
 const renderPosts = (posts, i18, state, elements) => {
   elements.postsCard.append(elements.postsCardBody);
   elements.postsCard.classList.add('card', 'border-0');
@@ -57,26 +66,6 @@ const renderPosts = (posts, i18, state, elements) => {
     postLink.textContent = post.title;
     postLink.rel = 'noopener noreferrer';
     postLink.target = '_blank';
-
-    btn.addEventListener('click', (e) => {
-      const { postId } = e.target.dataset;
-      state.uiState.selectedPostId = postId;
-      state.uiState.clickedLinksIds.add(postId);
-      const selectedPost = state.posts.find(({ id }) => id === state.uiState.selectedPostId);
-      document.querySelector('.modal-title').textContent = selectedPost.title;
-      document.querySelector('.modal-body').textContent = selectedPost.description;
-      const modalBtn = document.querySelector('.full-article');
-      modalBtn.href = selectedPost.link;
-      modalBtn.dataset.linkId = selectedPost.id;
-      postLink.classList.remove('fw-bold');
-      postLink.classList.add('fw-normal', 'link-secondary');
-    });
-
-    postLink.addEventListener('click', (e) => {
-      state.uiState.clickedLinksIds.add(e.target.id);
-      postLink.classList.remove('fw-bold');
-      postLink.classList.add('fw-normal', 'link-secondary');
-    });
 
     if (state.uiState.clickedLinksIds.has(post.id)) {
       postLink.classList.add('fw-normal', 'link-secondary');
@@ -121,7 +110,7 @@ const render = ({
   switch (path) {
     case 'feeds': {
       renderFeeds(value, i18, elements);
-      console.log(value);
+      // console.log(value);
       break;
     }
     case 'posts': {
@@ -139,6 +128,10 @@ const render = ({
     case 'isLoading': {
       elements.input.disabled = state.isLoading;
       elements.addBtn.disabled = state.isLoading;
+      break;
+    }
+    case 'uiState.selectedPostId': {
+      renderModal(state);
       break;
     }
     case 'uiState.clickedLinksIds': {
