@@ -108,8 +108,8 @@ const app = () => {
     });
 
     const validate = (field) => yup.string().trim().required().url()
-    .notOneOf(watchedState.feeds.map((feed) => feed.link))
-    .validate(field);
+      .notOneOf(watchedState.feeds.map((feed) => feed.link))
+      .validate(field);
 
     elements.input.addEventListener('input', () => {
       if (watchedState.form.error) {
