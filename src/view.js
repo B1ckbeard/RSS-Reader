@@ -110,7 +110,6 @@ const render = ({
   switch (path) {
     case 'feeds': {
       renderFeeds(value, i18, elements);
-      // console.log(value);
       break;
     }
     case 'posts': {

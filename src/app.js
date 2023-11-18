@@ -27,6 +27,49 @@ const elements = {
 
 const timeOut = 5000;
 
+const getFeed = (url) => {
+  const feedUrl = new URL('get', 'https://allorigins.hexlet.app');
+  feedUrl.searchParams.append('disableCache', true);
+  feedUrl.searchParams.append('url', url);
+
+  return axios.get(feedUrl)
+    .then((response) => ({ data: response.data.contents }))
+    .catch((err) => {
+      if (!err) {
+        return { error: 'errors.commonErr' };
+      }
+      if (err.response) {
+        return { error: 'errors.responseErr' };
+      } if (err.request) {
+        return { error: 'errors.networkError' };
+      }
+      return { error: 'errors.commonErr' };
+    });
+};
+
+const updatePosts = (state) => {
+  const promises = state.feeds.map((feed) => getFeed(feed.link)
+    .then((result) => {
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      const parsedResult = parse(result.data);
+
+      const newPosts = parsedResult.posts.map((post) => ({
+        ...post,
+        id: uniqueId('post'),
+      }));
+
+      state.posts = uniqBy([...state.posts, ...newPosts], 'link');
+    })
+    .catch((err) => {
+      // eslint-disable-next-line no-console
+      console.error(err);
+    }));
+  Promise.all(promises)
+    .then(setTimeout(() => updatePosts(state), timeOut));
+};
+
 const app = () => {
   const defaultLanguage = 'ru';
   const i18nInstance = i18n.createInstance();
@@ -64,25 +107,9 @@ const app = () => {
       });
     });
 
-    const getFeed = (url) => {
-      const feedUrl = new URL('get', 'https://allorigins.hexlet.app');
-      feedUrl.searchParams.append('disableCache', true);
-      feedUrl.searchParams.append('url', url);
-
-      return axios.get(feedUrl)
-        .then((response) => ({ data: response.data.contents }))
-        .catch((err) => {
-          if (!err) {
-            return { error: 'errors.commonErr' };
-          }
-          if (err.response) {
-            return { error: 'errors.responseErr' };
-          } if (err.request) {
-            return { error: 'errors.networkError' };
-          }
-          return { error: 'errors.commonErr' };
-        });
-    };
+    const validate = (field) => yup.string().trim().required().url()
+    .notOneOf(watchedState.feeds.map((feed) => feed.link))
+    .validate(field);
 
     elements.input.addEventListener('input', () => {
       if (watchedState.form.error) {
@@ -101,33 +128,6 @@ const app = () => {
       }
     });
 
-    const validate = (field) => yup.string().trim().required().url()
-      .notOneOf(watchedState.feeds.map((feed) => feed.link))
-      .validate(field);
-
-    const updatePosts = () => {
-      const promises = watchedState.feeds.map((feed) => getFeed(feed.link)
-        .then((result) => {
-          if (result.error) {
-            throw new Error(result.error);
-          }
-          const parsedResult = parse(result.data);
-
-          const newPosts = parsedResult.posts.map((post) => ({
-            ...post,
-            id: uniqueId('post'),
-          }));
-
-          watchedState.posts = uniqBy([...watchedState.posts, ...newPosts], 'link');
-        })
-        .catch((err) => {
-          // eslint-disable-next-line no-console
-          console.error(err);
-        }));
-      Promise.all(promises)
-        .then(setTimeout(() => updatePosts(), timeOut));
-    };
-
     elements.formEl.addEventListener('submit', (e) => {
       e.preventDefault();
       watchedState.form.error = null;
@@ -137,6 +137,7 @@ const app = () => {
       validate(url)
         .then((validUrl) => {
           watchedState.isLoading = true;
+          updatePosts(watchedState);
           getFeed(validUrl)
             .then((result) => {
               if (result.error) {
@@ -172,7 +173,6 @@ const app = () => {
           watchedState.form.error = err.errors.pop();
         });
     });
-    updatePosts();
   });
 };
 
